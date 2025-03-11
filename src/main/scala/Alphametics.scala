@@ -18,11 +18,14 @@ object Alphametics:
       if letters.isEmpty then if isValidMapping(currentMapping, left, right) then Some(currentMapping) else None
       else
          val letter = letters.head
-         (0 to 9).toStream.flatMap { digit =>
-            val digitLong = digit.toLong
-            if isLeadingZero(letter, left, right, digit) || usedDigits.contains(digitLong) then None
-            else backtrack(letters.tail, left, right, currentMapping + (letter -> digitLong), usedDigits + digitLong)
-         }.headOption
+         (0 to 9)
+            .to(LazyList)
+            .flatMap { digit =>
+               val digitLong = digit.toLong
+               if isLeadingZero(letter, left, right, digit) || usedDigits.contains(digitLong) then None
+               else backtrack(letters.tail, left, right, currentMapping + (letter -> digitLong), usedDigits + digitLong)
+            }
+            .headOption
 
    private def isValidMapping(mapping: Map[Char, Long], left: Array[String], right: String): Boolean =
       val leftSum = left.map(word => word.map(mapping).mkString("").toLong).sum
