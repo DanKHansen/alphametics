@@ -29,10 +29,9 @@ object Alphametics:
             .headOption
 
    private def isValidMapping(mapping: Map[Char, Int], left: Seq[String], right: String): Boolean =
-      val leftSum = left.map(word => word.map(mapping).mkString("").toLong).sum
-      val rightValue = right.map(mapping).mkString("").toLong
-      leftSum == rightValue
+      left.foldLeft(0L) { (sum, w) =>
+         sum + w.map(mapping).mkString.toLong
+      } == right.map(mapping).mkString.toLong
 
    private def isLeadingZero(letter: Char, left: Seq[String], right: String, digit: Int): Boolean =
-      val isFirstLetter = (word: String) => word.head == letter
-      digit == 0 && (left.exists(isFirstLetter) || right.headOption.contains(letter))
+      digit == 0 && ( right.headOption.contains(letter) || left.exists(w => w.head == letter))
