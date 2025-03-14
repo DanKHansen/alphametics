@@ -1,37 +1,35 @@
 object Alphametics:
+
    def solve(equation: String): Option[Map[Char, Int]] =
-      val (left, right) = parseEquation(equation)
-      val uniqueLetters = (left.flatMap(_.toSet) ++ right.toSet).toSet.mkString
-      backtrack(uniqueLetters, left, right, Map.empty, Seq.empty)
+      val (addends, result) = parse(equation)
+      val uniques = equation.filter(_.isLetter).distinct
+      val notZeroes = addends.map(_.head).appended(result.head).distinct
+      val wMap = weights(addends, result)
 
-   private def parseEquation(equation: String): (Seq[String], String) =
-      val parts = equation.filterNot(_.isSpaceChar).split("==").toSeq
-      val left = parts.head.filterNot(_.isSpaceChar).split("\\+").toSeq
-      (left, parts(1))
+      (0 to 9)
+         .combinations(uniques.length)
+         .flatMap(_.permutations)
+         .collectFirst {
+            case comb
+                if comb.zip(wMap).forall { case (i, t) => i != 0 || !notZeroes.contains(t._1) } &&
+                   comb.zip(wMap).map { case (i, t) => i * t._2 }.sum == 0 =>
+               comb.zip(wMap).map { case (i, t) => (t._1, i) }.toMap
+         }
 
-   private def backtrack(
-       letters: String,
-       left: Seq[String],
-       right: String,
-       currentMapping: Map[Char, Int],
-       usedDigits: Seq[Int]): Option[Map[Char, Int]] =
-      if letters.isEmpty then
-         if isValidMapping(currentMapping, left, right) then Some(currentMapping)
-         else None
-      else
-         val letter = letters.head
-         (0 to 9)
-            .to(LazyList)
-            .flatMap { digit =>
-               if isLeadingZero(letter, left, right, digit) || usedDigits.contains(digit) then None
-               else backtrack(letters.tail, left, right, currentMapping + (letter -> digit), usedDigits.appended(digit))
-            }
-            .headOption
+   private def parse(s: String): (Seq[String], String) =
+      val parts = s.filterNot(_.isSpaceChar).split("==", 2)
+      (parts.head.split("\\+").toSeq, parts.last)
 
-   private def isValidMapping(mapping: Map[Char, Int], left: Seq[String], right: String): Boolean =
-      left.foldLeft(0L) { (sum, w) =>
-         sum + w.map(mapping).mkString.toLong
-      } == right.map(mapping).mkString.toLong
+   private def weights(as: Seq[String], r: String): Map[Char, Int] =
+      def weight(s: String, sign: Int): Map[Char, Int] =
+         s.zipWithIndex
+            .groupMap(_._1) { case (_, idx) => Math.pow(10, s.length - 1 - idx).toInt }
+            .view
+            .mapValues(_.sum * sign)
+            .toMap
 
-   private def isLeadingZero(letter: Char, left: Seq[String], right: String, digit: Int): Boolean =
-      digit == 0 && ( right.headOption.contains(letter) || left.exists(w => w.head == letter))
+      (as.map(weight(_, 1)) :+ weight(r, -1)).flatten
+         .groupMap(_._1)(_._2)
+         .view
+         .mapValues(_.sum)
+         .toMap
